@@ -1,7 +1,6 @@
 from .. import loader
-import requests
-from PIL import Image
-from io import BytesIO
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import asyncio
 
 @loader.tds
@@ -11,27 +10,27 @@ class MarksModule(loader.Module):
     @loader.command()
     async def marks(self, message):
         url = "http://bit.ly/3RnfMpR"
-        await message.edit("Роблю убогий скрін, оцінок даунів...")
+        await message.edit("Загружаю убогу таблицю даунів...")
         
         try:
-            response = requests.get(url)
-            response.raise_for_status()
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
 
-            if "text/html" in response.headers["Content-Type"]:
-                from html2image import Html2Image
+            driver = webdriver.Chrome(options=chrome_options)
 
-                hti = Html2Image()
-                image_path = "/tmp/table_screenshot.png"
+            driver.get(url)
+            screenshot_path = "/tmp/marks_table.png"
+            driver.save_screenshot(screenshot_path)
+            driver.quit()
 
-                hti.screenshot(html_str=response.text, save_as=image_path)
-                
-                await message.client.send_file(
-                    message.chat_id,
-                    image_path,
-                    caption="вот ваша хуйня:"
-                )
-                await message.delete()
-            else:
-                await message.edit("там даже немає на що дивитися .")
+            await message.client.send_file(
+                message.chat_id,
+                screenshot_path,
+                caption="полюбуйтеся говном:"
+            )
+            await message.delete()
         except Exception as e:
             await message.edit(f"Ошибка: {e}")
