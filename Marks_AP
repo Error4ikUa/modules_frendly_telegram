@@ -1,0 +1,37 @@
+from .. import loader
+import requests
+from PIL import Image
+from io import BytesIO
+import asyncio
+
+@loader.tds
+class MarksModule(loader.Module):
+    strings = {"name": "Marks"}
+
+    @loader.command()
+    async def marks(self, message):
+        url = "http://bit.ly/3RnfMpR"
+        await message.edit("Роблю убогий скрін, оцінок даунів...")
+        
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+
+            if "text/html" in response.headers["Content-Type"]:
+                from html2image import Html2Image
+
+                hti = Html2Image()
+                image_path = "/tmp/table_screenshot.png"
+
+                hti.screenshot(html_str=response.text, save_as=image_path)
+                
+                await message.client.send_file(
+                    message.chat_id,
+                    image_path,
+                    caption="вот ваша хуйня:"
+                )
+                await message.delete()
+            else:
+                await message.edit("там даже немає на що дивитися .")
+        except Exception as e:
+            await message.edit(f"Ошибка: {e}")
