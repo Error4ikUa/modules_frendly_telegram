@@ -1,55 +1,74 @@
-import io
+import os
+import re
 import logging
-import requests
+from datetime import datetime as dt
 
+from telethon.tl.types import DocumentAttributeFilename
+from pyppeteer import launch
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
-
 @loader.tds
-class MarksModule(loader.Module):
-    """Модуль для скриншотов сайта"""
+class WebScreenshotMod(loader.Module):
+    """Модуль для создания скриншотов веб-страниц"""
 
     strings = {
-        "name": "Marks",
-        "answer": "🖥 Обновленный скриншот таблицы:",
-        "error": "Ошибка при загрузке скриншота. Проверьте сайт или повторите позже.",
-        "cfg_url": "URL для API",
+        "name": "WebScreenshot",
+        "processing": "📸 Создаю скриншот...",
+        "error": "⚠️ Ошибка при обработке. Проверьте URL или попробуйте позже.",
+        "invalid_url": "❌ Неверный формат URL. Пример: https://example.com",
+        "success": "✅ Скриншот успешно создан.",
     }
 
     def __init__(self):
-        self.config = loader.ModuleConfig(
-            "url",
-            "https://webshot.deam.io/{0}/?width={1}&height={2}&type=png&no_cookie_banners=true&lazy_load=true&destroy_screenshot=true&dark_mode=true&wait_for_event=load&delay=1000&accept_languages=ru&ttl=10",
-            self.strings["cfg_url"],
-        )
-        self.name = self.strings["name"]
+        self.browser = None
+        self.page = None
+        self.screenshot_path = os.path.join(os.getcwd(), "screenshots")
 
     async def client_ready(self, client, db):
         self.client = client
-        self.db = db
+        if not os.path.exists(self.screenshot_path):
+            os.makedirs(self.screenshot_path)
+        self.browser = await launch(headless=True, args=['--no-sandbox'])
+        self.page = await self.browser.newPage()
+        await self.page.setViewport({"width": 1280, "height": 720})
 
-    @loader.unrestricted
-    @loader.ratelimit
-    async def markscmd(self, message):
+    @loader.command()
+    async def screenshot(self, message):
         """
-        Получить обновленный скриншот таблицы.
-        Использование: .marks
+        .screenshot <URL>
+        Создает скриншот указанной страницы.
         """
-        url = "http://bit.ly/3RnfMpR"
-        width = 1920
-        height = 1080
-
-        api_url = self.config["url"].format(url, width, height)
-        response = await utils.run_sync(requests.get, api_url)
-
-        if not response.ok:
-            await utils.answer(message, self.strings["error"])
+        args = utils.get_args_raw(message)
+        if not args or not self._validate_url(args):
+            await utils.answer(message, self.strings["invalid_url"])
             return
 
-        screenshot = io.BytesIO(response.content)
-        screenshot.name = "marks.png"
-        screenshot.seek(0)
+        await utils.answer(message, self.strings["processing"])
+        try:
+            file_name = self._generate_file_name(args)
+            file_path = os.path.join(self.screenshot_path, file_name)
+            await self.page.goto(args)
+            await self.page.screenshot({"path": file_path, "fullPage": True})
+            await self.client.send_file(
+                message.peer_id,
+                file_path,
+                caption=self.strings["success"],
+                attributes=[DocumentAttributeFilename(file_name)]
+            )
+        except Exception as e:
+            logger.exception("Ошибка при создании скриншота:", exc_info=e)
+            await utils.answer(message, self.strings["error"])
 
-        await self.client.send_file(message.peer_id, screenshot, caption=self.strings["answer"])
+    def _validate_url(self, url):
+        regex = r"(http|https)://[^\s/$.?#].[^\s]*"
+        return re.match(regex, url)
+
+    def _generate_file_name(self, url):
+        clean_url = re.sub(r"[^\w]", "_", url)
+        return f"{dt.now().strftime('%Y-%m-%d_%H-%M-%S')}_{clean_url}.png"
+
+    async def on_unload(self):
+        if self.browser:
+            await self.browser.close()
