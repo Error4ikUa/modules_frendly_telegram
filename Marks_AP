@@ -1,6 +1,7 @@
 import random
 import asyncio
 import logging
+from telethon.tl.functions.messages import GetHistoryRequest
 from .. import loader, utils
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ class MarksMod(loader.Module):
         """Отримати оцінки групи"""
         bot_username = "@siteshot_bot"
         link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
-        
+
         # Отправка ссылки боту
         bot = await self.client.get_entity(bot_username)
         await self.client.send_message(bot, link)
@@ -48,15 +49,14 @@ class MarksMod(loader.Module):
             await message.edit(text)
             await asyncio.sleep(1)
 
-        # Ожидание ответа от бота
-        await asyncio.sleep(5)
+        # Ожидание сообщения от бота
+        for _ in range(10):  # 10 попыток с интервалом в 2 секунды
+            async for msg in self.client.iter_messages(bot, limit=1):
+                if msg.photo:
+                    random_text = random.choice(self.strings["final_texts"])
+                    await message.edit(file=msg.photo, text=random_text)
+                    return
+            await asyncio.sleep(2)
 
-        # Получение последнего сообщения от бота
-        async for msg in self.client.iter_messages(bot, limit=1):
-            if msg.photo:
-                random_text = random.choice(self.strings["final_texts"])
-                await message.edit(file=msg.photo, text=random_text)
-                return
-
-        # Если что-то пошло не так
+        # Если не удалось получить сообщение
         await message.edit("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
