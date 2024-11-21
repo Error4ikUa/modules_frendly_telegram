@@ -39,24 +39,33 @@ class MarksMod(loader.Module):
         bot_username = "@siteshot_bot"
         link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
         
-        # Отправка ссылки боту
+        # Надсилання повідомлення про дію
+        sent_info_msg = await message.respond(f"Написав {bot_username}")
+
+        # Надсилання посилання боту
         bot = await self.client.get_entity(bot_username)
         await self.client.send_message(bot, link)
 
-        # Анимация текста
+        # Анімація тексту
+        loading_msgs = []
         for text in self.strings["loading"]:
-            await message.edit(text)
+            msg = await message.edit(text)
+            loading_msgs.append(msg)
             await asyncio.sleep(1)
 
-        # Ожидание ответа от бота
+        # Очікування відповіді від бота
         await asyncio.sleep(5)
 
-        # Получение последнего сообщения от бота
+        # Отримання останнього повідомлення від бота
         async for msg in self.client.iter_messages(bot, limit=1):
             if msg.photo:
                 random_text = random.choice(self.strings["final_texts"])
-                await message.edit(file=msg.photo, text=random_text)
+                await self.client.send_file(message.peer_id, msg.photo, caption=random_text)
+                
+                # Видалення двох попередніх повідомлень
+                for msg_to_delete in loading_msgs + [sent_info_msg]:
+                    await msg_to_delete.delete()
                 return
 
-        # Если что-то пошло не так
-        await message.edit("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
+        # Якщо щось пішло не так
+        await message.respond("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
