@@ -1,74 +1,63 @@
-import os
-import re
-import logging
-from datetime import datetime as dt
-
-from telethon.tl.types import DocumentAttributeFilename
-from pyppeteer import launch
+import random
+import asyncio
 from .. import loader, utils
 
-logger = logging.getLogger(__name__)
-
-@loader.tds
-class WebScreenshotMod(loader.Module):
-    """Модуль для создания скриншотов веб-страниц"""
+class MarksMod(loader.Module):
+    """Модуль для отримання оцінок через @siteshot_bot"""
 
     strings = {
-        "name": "WebScreenshot",
-        "processing": "📸 Создаю скриншот...",
-        "error": "⚠️ Ошибка при обработке. Проверьте URL или попробуйте позже.",
-        "invalid_url": "❌ Неверный формат URL. Пример: https://example.com",
-        "success": "✅ Скриншот успешно создан.",
+        "name": "Marks",
+        "loading": [
+            "Отримую ніщі оцінки",
+            "Боже, да там немає на що дивитися",
+            "ХАХАХКХ, одні двойки",
+            "Тільки в одного великого журналіста все чотко",
+            "Шо цікаво? Ну ладно, дивіться дивіться",
+        ],
+        "final_texts": [
+            "Ну і фігня",
+            "Ну і говно",
+            "Шо, опять викладач нічого не виставив",
+            "Мда, ну і двоїшники",
+        ],
+        "welcome": (
+            "Привіт! Модуль створений онлі для 105 групи для оцінок з АП.\n"
+            "<b>.marks</b> - показує оцінки групи."
+        ),
     }
-
-    def __init__(self):
-        self.browser = None
-        self.page = None
-        self.screenshot_path = os.path.join(os.getcwd(), "screenshots")
 
     async def client_ready(self, client, db):
         self.client = client
-        if not os.path.exists(self.screenshot_path):
-            os.makedirs(self.screenshot_path)
-        self.browser = await launch(headless=True, args=['--no-sandbox'])
-        self.page = await self.browser.newPage()
-        await self.page.setViewport({"width": 1280, "height": 720})
+        self.db = db
+        logger.info("Marks модуль завантажено")
 
-    @loader.command()
-    async def screenshot(self, message):
-        """
-        .screenshot <URL>
-        Создает скриншот указанной страницы.
-        """
-        args = utils.get_args_raw(message)
-        if not args or not self._validate_url(args):
-            await utils.answer(message, self.strings["invalid_url"])
-            return
+    async def marks_cmd(self, message):
+        """Отримати оцінки групи"""
+        bot_username = "@siteshot_bot"
+        link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
+        
+        # Отправка ссылки боту
+        await message.respond(f"Написав {bot_username}")
+        bot = await self.client.get_entity(bot_username)
+        await self.client.send_message(bot, link)
 
-        await utils.answer(message, self.strings["processing"])
-        try:
-            file_name = self._generate_file_name(args)
-            file_path = os.path.join(self.screenshot_path, file_name)
-            await self.page.goto(args)
-            await self.page.screenshot({"path": file_path, "fullPage": True})
-            await self.client.send_file(
-                message.peer_id,
-                file_path,
-                caption=self.strings["success"],
-                attributes=[DocumentAttributeFilename(file_name)]
-            )
-        except Exception as e:
-            logger.exception("Ошибка при создании скриншота:", exc_info=e)
-            await utils.answer(message, self.strings["error"])
+        # Анимация текста
+        for text in self.strings["loading"]:
+            await message.edit(text)
+            await asyncio.sleep(1)
 
-    def _validate_url(self, url):
-        regex = r"(http|https)://[^\s/$.?#].[^\s]*"
-        return re.match(regex, url)
+        # Ожидание ответа от бота
+        await asyncio.sleep(5)
 
-    def _generate_file_name(self, url):
-        clean_url = re.sub(r"[^\w]", "_", url)
-        return f"{dt.now().strftime('%Y-%m-%d_%H-%M-%S')}_{clean_url}.png"
+        # Получение последнего сообщения от бота
+        async for msg in self.client.iter_messages(bot, limit=1):
+            if msg.photo:
+                random_text = random.choice(self.strings["final_texts"])
+                await self.client.send_file(message.peer_id, msg.photo, caption=random_text)
+                return
 
-    async def on_unload(self):
-        if self.browser:
-            await self.browser.close()
+        # Если что-то пошло не так
+        await message.respond("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
+
+    async def client_ready(self, client, db):
+        logger.info("Marks модуль готовий до роботи")
