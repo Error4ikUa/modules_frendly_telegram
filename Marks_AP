@@ -1,9 +1,12 @@
 import random
 import asyncio
+import logging
 from .. import loader, utils
 
+logger = logging.getLogger(__name__)
+
 class MarksMod(loader.Module):
-    """Модуль для отримання оцінок через @siteshot_bot"""
+    """Модуль для отримання оцінок 105 групи"""
 
     strings = {
         "name": "Marks",
@@ -29,7 +32,7 @@ class MarksMod(loader.Module):
     async def client_ready(self, client, db):
         self.client = client
         self.db = db
-        logger.info("Marks модуль завантажено")
+        logger.info("Marks модуль готовий до роботи")
 
     async def marks_cmd(self, message):
         """Отримати оцінки групи"""
@@ -58,6 +61,3 @@ class MarksMod(loader.Module):
 
         # Если что-то пошло не так
         await message.respond("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
-
-    async def client_ready(self, client, db):
-        logger.info("Marks модуль готовий до роботи")
