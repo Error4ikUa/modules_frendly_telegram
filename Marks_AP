@@ -38,7 +38,7 @@ class MarksMod(loader.Module):
         """Отримати оцінки групи"""
         bot_username = "@siteshot_bot"
         link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
-
+        
         # Отправка ссылки боту
         bot = await self.client.get_entity(bot_username)
         await self.client.send_message(bot, link)
