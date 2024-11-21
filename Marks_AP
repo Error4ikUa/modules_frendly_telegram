@@ -23,6 +23,7 @@ class MarksMod(loader.Module):
             "Шо, опять викладач нічого не виставив",
             "Мда, ну і двоїшники",
         ],
+        "no_photo": "Хуй вам а не оцінки",
         "welcome": (
             "Привіт! Модуль створений онлі для 105 групи для оцінок з АП.\n"
             "<b>.marks</b> - показує оцінки групи."
@@ -39,18 +40,13 @@ class MarksMod(loader.Module):
         bot_username = "@siteshot_bot"
         link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
         
-        # Надсилання повідомлення про дію
-        sent_info_msg = await message.respond(f"Написав {bot_username}")
-
         # Надсилання посилання боту
         bot = await self.client.get_entity(bot_username)
         await self.client.send_message(bot, link)
 
         # Анімація тексту
-        loading_msgs = []
         for text in self.strings["loading"]:
-            msg = await message.edit(text)
-            loading_msgs.append(msg)
+            await message.edit(text)
             await asyncio.sleep(1)
 
         # Очікування відповіді від бота
@@ -61,11 +57,7 @@ class MarksMod(loader.Module):
             if msg.photo:
                 random_text = random.choice(self.strings["final_texts"])
                 await self.client.send_file(message.peer_id, msg.photo, caption=random_text)
-                
-                # Видалення двох попередніх повідомлень
-                for msg_to_delete in loading_msgs + [sent_info_msg]:
-                    await msg_to_delete.delete()
                 return
 
-        # Якщо щось пішло не так
-        await message.respond("<b>Щось пішло не так. Перевірте, чи бот працює.</b>")
+        # Якщо бот не надіслав фото
+        await message.edit(self.strings["no_photo"])
