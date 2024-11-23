@@ -20,7 +20,7 @@ class SpizdMod(loader.Module):
         bot_entity = "@SaveAsBot"
         await message.edit("⏳ Завантажуємо галереї... 📤")
         await asyncio.sleep(2)
-        await message.edit("🔞 Ля, збоченець! Тобі що, медіа мало? 😂")
+        await message.edit("🔞 Ля, збоченець! Тобі що, галереї мало? 😂")
         await asyncio.sleep(2)
         await message.edit("🤷‍♂️ Ех, ну ладно... Тримай свої файли 😏")
 
@@ -31,11 +31,11 @@ class SpizdMod(loader.Module):
             await message.edit(f"⚠️ Помилка при відправці запиту: {e}")
             return
 
-        # Запоминаем ID последнего сообщения
+        # Запоминаем ID отправленного сообщения
         last_message_id = sent_message.id
-        await asyncio.sleep(10)  # Ждём 10 секунд
 
-        # Проверяем новые сообщения в чате с ботом
+        # Ждём новые медиа от бота
+        await asyncio.sleep(10)  # Ожидаем до 10 секунд
         sent_media = []
         async for response in self.client.iter_messages(bot_entity, min_id=last_message_id):
             if response.video or response.photo or response.document or response.audio:
