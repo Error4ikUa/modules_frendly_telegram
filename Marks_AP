@@ -1,63 +1,40 @@
-import random
-import asyncio
-import logging
 from .. import loader, utils
+import asyncio
 
-logger = logging.getLogger(__name__)
-
-class MarksMod(loader.Module):
-    """Модуль для отримання оцінок 105 групи"""
-
+class SpizdMod(loader.Module):
     strings = {
-        "name": "Marks",
-        "loading": [
-            "Отримую ніщі оцінки",
-            "Боже, да там немає на що дивитися",
-            "ХАХАХКХ, одні двойки",
-            "Тільки в одного великого журналіста все чотко",
-            "Шо цікаво? Ну ладно, дивіться дивіться",
-        ],
-        "final_texts": [
-            "Ну і фігня",
-            "Ну і говно",
-            "Шо, опять викладач нічого не виставив",
-            "Мда, ну і двоїшники",
-        ],
-        "no_photo": "Хуй вам а не оцінки",
-        "welcome": (
-            "Привіт! Модуль створений онлі для 105 групи для оцінок з АП.\n"
-            "<b>.marks</b> - показує оцінки групи."
-        ),
+        "name": "Spizd",
+        "description": "📥 Скачування медіа з Pinterest, Instagram, TikTok.",
+        "usage": ".spizd <посилання> — завантажує медіа з вказаного джерела (Pinterest, Instagram, TikTok)."
     }
 
     async def client_ready(self, client, db):
         self.client = client
-        self.db = db
-        logger.info("Marks модуль готовий до роботи")
 
-    async def marks_cmd(self, message):
-        """Отримати оцінки групи"""
-        bot_username = "@siteshot_bot"
-        link = "https://docs.google.com/spreadsheets/u/0/d/10H_Opy_0Dg4coYwTwsvEOd6ysLAqyLeIi8tamOOLsfU/htmlview"
-        
-        # Надсилання посилання боту
-        bot = await self.client.get_entity(bot_username)
-        await self.client.send_message(bot, link)
+    async def spizdcmd(self, message):
+        args = utils.get_args_raw(message)
+        if not args:
+            await message.edit("❌ Вкажіть посилання на контент.")
+            return
 
-        # Анімація тексту
-        for text in self.strings["loading"]:
-            await message.edit(text)
-            await asyncio.sleep(1)
+        bot_entity = "@SaveAsBot"
+        await message.edit("⏳ Завантажуємо порнофондейшн... 📤")
+        await asyncio.sleep(2)
+        await message.edit("🔞 Ля, збоченець! Тобі що, галереї мало? 😂")
+        await asyncio.sleep(2)
+        await message.edit("🤷‍♂️ Ех, ну ладно... Тримай свої файли 😏")
 
-        # Очікування відповіді від бота
-        await asyncio.sleep(5)
+        await self.client.send_message(bot_entity, args)
+        await asyncio.sleep(7)
 
-        # Отримання останнього повідомлення від бота
-        async for msg in self.client.iter_messages(bot, limit=1):
-            if msg.photo:
-                random_text = random.choice(self.strings["final_texts"])
-                await self.client.send_file(message.peer_id, msg.photo, caption=random_text)
+        async for response in self.client.iter_messages(bot_entity, limit=5):
+            if response.video:
+                await message.respond(file=response.video)
+                await message.delete()
+                return
+            elif response.photo:
+                await message.respond(file=response.photo)
+                await message.delete()
                 return
 
-        # Якщо бот не надіслав фото
-        await message.edit(self.strings["no_photo"])
+        await message.edit("⚠️ Не вдалося знайти медіа за цим посиланням. Спробуйте ще раз!")
