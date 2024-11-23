@@ -20,7 +20,7 @@ class SpizdMod(loader.Module):
         bot_entity = "@SaveAsBot"
         await message.edit("⏳ Завантажуємо порнофондейшн... 📤")
         await asyncio.sleep(2)
-        await message.edit("🔞 Ля, збоченець! Тобі що, медіа мало? 😂")
+        await message.edit("🔞 Ля, збоченець! Тобі що, галереї мало? 😂")
         await asyncio.sleep(2)
         await message.edit("🤷‍♂️ Ех, ну ладно... Тримай свої файли 😏")
 
@@ -28,13 +28,19 @@ class SpizdMod(loader.Module):
         await asyncio.sleep(7)
 
         async for response in self.client.iter_messages(bot_entity, limit=5):
-            if response.video and response.video.sender_id != self.client.me.id:
+            if response.video:
                 await message.respond(file=response.video)
-                if response.document and response.document.mime_type == "audio/mpeg":
-                    await message.respond(file=response.document)
+                async for doc in self.client.iter_messages(bot_entity, reply_to=response.id, limit=5):
+                    if doc.document and doc.document.mime_type == "audio/mpeg":
+                        await message.respond(file=doc.document)
+                        break
                 await message.delete()
                 return
-            elif response.photo and response.photo.sender_id != self.client.me.id:
+            elif response.document and response.document.mime_type == "audio/mpeg":
+                await message.respond(file=response.document)
+                await message.delete()
+                return
+            elif response.photo:
                 await message.respond(file=response.photo)
                 await message.delete()
                 return
