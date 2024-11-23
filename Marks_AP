@@ -4,8 +4,8 @@ import asyncio
 class SpizdMod(loader.Module):
     strings = {
         "name": "Spizd",
-        "description": "📥 Скачування медіа з Pinterest, Instagram, TikTok.",
-        "usage": ".spizd <посилання> — завантажує галереї або відео з аудіо з вказаного джерела (Pinterest, Instagram, TikTok)."
+        "description": "📥 Скачування галереї або відео з аудіо з Pinterest, Instagram, TikTok.",
+        "usage": ".spizd <посилання> — завантажує файли з вказаного джерела."
     }
 
     async def client_ready(self, client, db):
@@ -20,29 +20,29 @@ class SpizdMod(loader.Module):
         bot_entity = "@SaveAsBot"
         await message.edit("⏳ Завантажуємо галереї... 📤")
         await asyncio.sleep(2)
-        await message.edit("🔞 Ля, збоченець! Тобі що, медіа мало? 😂")
+        await message.edit("🔞 Ля, збоченець! Тобі що, галереї мало? 😂")
         await asyncio.sleep(2)
         await message.edit("🤷‍♂️ Ех, ну ладно... Тримай свої файли 😏")
 
-        await self.client.send_message(bot_entity, args)
+        try:
+            await self.client.send_message(bot_entity, args)
+        except Exception as e:
+            await message.edit(f"⚠️ Помилка при відправці запиту: {e}")
+            return
+
         await asyncio.sleep(10)
 
         sent_media = []
         async for response in self.client.iter_messages(bot_entity, limit=10):
-            if response.video:
-                sent_media.append(response.video)
-                async for doc in self.client.iter_messages(bot_entity, reply_to=response.id, limit=5):
-                    if doc.document and doc.document.mime_type == "audio/mpeg":
-                        sent_media.append(doc.document)
-                        break
-            elif response.photo:
-                sent_media.append(response.photo)
-            elif response.document and response.document.mime_type == "audio/mpeg":
-                sent_media.append(response.document)
+            if response.video or response.photo or response.document:
+                sent_media.append(response)
 
         if sent_media:
             for media in sent_media:
-                await message.respond(file=media)
+                try:
+                    await self.client.send_file(message.chat_id, media, reply_to=message.id)
+                except Exception as e:
+                    await message.respond(f"⚠️ Помилка при пересиланні: {e}")
             await message.delete()
         else:
-            await message.edit("⚠️ Не вдалося знайти галереї за цим посиланням. Спробуйте ще раз!")
+            await message.edit("⚠️ Не вдалося знайти медіа за цим посиланням. Спробуйте ще раз!")
