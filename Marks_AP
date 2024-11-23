@@ -4,8 +4,8 @@ import asyncio
 class SpizdMod(loader.Module):
     strings = {
         "name": "Spizd",
-        "description": "📥 Скачування галереї або відео з аудіо з Pinterest, Instagram, TikTok.",
-        "usage": ".spizd <посилання> — завантажує файли з вказаного джерела."
+        "description": "📥 Завантаження відео, фото та аудіо з TikTok, Instagram, Pinterest.",
+        "usage": ".spizd <посилання> — завантажує медіа з вказаного джерела."
     }
 
     async def client_ready(self, client, db):
@@ -20,23 +20,28 @@ class SpizdMod(loader.Module):
         bot_entity = "@SaveAsBot"
         await message.edit("⏳ Завантажуємо галереї... 📤")
         await asyncio.sleep(2)
-        await message.edit("🔞 Ля, збоченець! Тобі що, галереї мало? 😂")
+        await message.edit("🔞 Ля, збоченець! Тобі що, медіа мало? 😂")
         await asyncio.sleep(2)
         await message.edit("🤷‍♂️ Ех, ну ладно... Тримай свої файли 😏")
 
+        # Отправляем ссылку боту
         try:
-            await self.client.send_message(bot_entity, args)
+            sent_message = await self.client.send_message(bot_entity, args)
         except Exception as e:
             await message.edit(f"⚠️ Помилка при відправці запиту: {e}")
             return
 
-        await asyncio.sleep(10)
+        # Запоминаем ID последнего сообщения
+        last_message_id = sent_message.id
+        await asyncio.sleep(10)  # Ждём 10 секунд
 
+        # Проверяем новые сообщения в чате с ботом
         sent_media = []
-        async for response in self.client.iter_messages(bot_entity, limit=10):
-            if response.video or response.photo or response.document:
+        async for response in self.client.iter_messages(bot_entity, min_id=last_message_id):
+            if response.video or response.photo or response.document or response.audio:
                 sent_media.append(response)
 
+        # Пересылаем медиафайлы в чат, где была вызвана команда
         if sent_media:
             for media in sent_media:
                 try:
